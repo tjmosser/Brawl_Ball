@@ -18,7 +18,7 @@ void UDashComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Reference to the camera being used by player
+	// Setup camera reference
 	playerCamera = Cast<UCameraComponent>(GetOwner()->GetComponentByClass(UCameraComponent::StaticClass()));
 }
 

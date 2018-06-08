@@ -12,5 +12,8 @@ void UChargeComponent::BeginPlay()
 	Super::BeginPlay();
 }
 
+void UChargeComponent::Use()
+{
 
+}
 

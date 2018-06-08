@@ -17,6 +17,9 @@ class BRAWL_BALL_API UChargeComponent : public UMovementAbilityComponent
 public:
 	UChargeComponent();
 
+	UFUNCTION()
+		void Use();
+
 private:
 
 protected:

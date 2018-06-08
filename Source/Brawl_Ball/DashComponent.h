@@ -17,6 +17,7 @@ class BRAWL_BALL_API UDashComponent : public UMovementAbilityComponent
 	
 	// UFUNCTIONs
 public:
+	UDashComponent();
 
 	UFUNCTION()
 		void Use();
@@ -29,22 +30,18 @@ private:
 	UFUNCTION()
 		void DashDelay();
 
-public:
-	UDashComponent();
+	int		charges;								// Number of uses of the ability. Regained over time and never exceeds maxCharges
+	int		maxCharges;								// Max number of charges to be held at one time
+	float	dashMod;								// Modifier for dash distance
+	float	delay;									// Duration of the dash. Used to keep the player from arching after launch
+	float	rechargeTime;							// Time for a charge to be added back
+	bool	canDash;								
+	UCameraComponent			*playerCamera;		// Reference to the CameraComponent being used by the player
+	FTimerHandle				RegenChargeHandle;	// Timer that controls charge regeneration
+	FTimerHandle				DashDelayHandle;	// Timer that causes the end of the player movement caused by the ability usage
 
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
-	
-private:
-	int		charges;							// Number of uses of the ability. Regained over time and never exceeds maxCharges
-	int		maxCharges;							// Max number of charges to be held at one time
-	float	dashMod;						// Modifier for dash distance
-	float	delay;							// Duration of the dash. Used to keep the player from arching after launch
-	float	rechargeTime;					// Time for a charge to be added back
-	bool	canDash;
-	UCameraComponent			*playerCamera;
-	FTimerHandle				RegenChargeHandle;	// Handle of timer that controls charge regeneration
-	FTimerHandle				DashDelayHandle;
 	
 };
