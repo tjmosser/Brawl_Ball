@@ -9,6 +9,7 @@ APlayerCharacter::APlayerCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 
 	//ability = CreateDefaultSubobject<UDashComponent>(TEXT("MovementAbility"));
+	//ability = CreateDefaultSubobject<ULeapComponent>(TEXT("MovementAbility"));
 
 	FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 
@@ -17,6 +18,10 @@ APlayerCharacter::APlayerCharacter()
 	FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
 
 	FPSCameraComponent->bUsePawnControlRotation = true;
+
+	defaultSpeed = 0.0f;
+
+	sprintModifier = 100.0f;
 
 }
 
