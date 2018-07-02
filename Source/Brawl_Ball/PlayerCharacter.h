@@ -26,29 +26,45 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	/* Controls forward and backward movement*/
 	UFUNCTION()
 		void MoveForwardBackward(float value);
 
+	/* Controls right and left movement*/
 	UFUNCTION()
 		void MoveRightLeft(float value);
 
+	/* Starts a jumping action*/
 	UFUNCTION()
 		void StartJump();
 
+	/* Ends a jumping action*/
 	UFUNCTION()
 		void StopJump();
 
+	/* Increases movement speed while sprint key is held*/
 	UFUNCTION()
 		void StartSprint();
 
+	/* Restores default movement speed when Sprint key is released*/
 	UFUNCTION()
 		void StopSprint();
 
+	/* Uses the attached movement ability*/
 	UFUNCTION()
 		void UseAbility();
 
+	/* Returns the default speed of the character*/
+	UFUNCTION()
+		const float GetDefaultMovementSpeed();
+
+	/* Sets the movement speed of the character
+	 * @param newSpeed - the new movement speed for the character*/
+	UFUNCTION()
+		void SetDefaultMovementSpeed(float newSpeed);
+
 	UPROPERTY(VisibleAnywhere)
-		UCameraComponent* FPSCameraComponent;
+		UCameraComponent* FPSCameraComponent;	// First person camera player will see through by default
 
 protected:
 	// Called when the game starts or when spawned
@@ -57,12 +73,11 @@ protected:
 private:
 
 	UPROPERTY(EditAnywhere)
-	UMovementAbilityComponent *ability;
+	UMovementAbilityComponent *ability;		// Reference to player's movement ability
 
 	UPROPERTY(EditAnywhere)
-	float defaultSpeed;
+		float sprintModifier;				// Multiplier to apply to default speed when generating sprint speed
 
-	UPROPERTY(EditAnywhere)
-	float sprintModifier;
+	float defaultSpeed;						// Movement speed that is set at creation
 
 };

@@ -8,20 +8,16 @@ APlayerCharacter::APlayerCharacter()
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	//ability = CreateDefaultSubobject<UDashComponent>(TEXT("MovementAbility"));
-	//ability = CreateDefaultSubobject<ULeapComponent>(TEXT("MovementAbility"));
-
+	// Setup the First person camera
 	FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
-
 	FPSCameraComponent->SetupAttachment(GetCapsuleComponent());
-
 	FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
-
 	FPSCameraComponent->bUsePawnControlRotation = true;
 
+	// Initialize variable(s)
 	defaultSpeed = 0.0f;
 
-	sprintModifier = 100.0f;
+	sprintModifier = 3.0f;
 
 }
 
@@ -29,7 +25,8 @@ APlayerCharacter::APlayerCharacter()
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
+	
+	// Find engine default speed
 	defaultSpeed = GetCharacterMovement()->MaxWalkSpeed;
 
 }
@@ -67,42 +64,69 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 }
 
+/* Moves player in direction of parameter value along the X axis 
+ * in relation to its rotation. 1.0 moves player forward, -1.0 
+ * moves player backwards*/
 void APlayerCharacter::MoveForwardBackward(float value)
 {
+	// Find and move in input direction
 	FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
 	AddMovementInput(Direction, value);
 }
 
+/* Moves player in direction of parameter value along the Y axis
+ * in relation to its rotation. 1.0 moves player right, -1.0 
+ * moves player left*/
 void APlayerCharacter::MoveRightLeft(float value)
 {
+	// Find and move in input direction
 	FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
 	AddMovementInput(Direction, value);
 }
 
+/* Uses the ACharacter class features to perform a jump*/
 void APlayerCharacter::StartJump()
 {
 	bPressedJump = true;
 }
 
+/* Uses the ACharacter class features to end a jump*/
 void APlayerCharacter::StopJump()
 {
 	bPressedJump = false;
 }
 
+/* Sets the movement speed of the character to a modified sprinting speed*/
 void APlayerCharacter::StartSprint()
 {
 	GetCharacterMovement()->MaxWalkSpeed = defaultSpeed * sprintModifier;
 }
 
+/* Sets the movement speed of the character back to its defaultspeed after a sprint*/
 void APlayerCharacter::StopSprint()
 {
 	GetCharacterMovement()->MaxWalkSpeed = defaultSpeed;
 }
 
+/* Calls the Use() method from the character's movement ability*/
 void APlayerCharacter::UseAbility()
 {
 	if (ability != nullptr)
 	{
 		ability->Use();
 	}
+}
+
+/* Returns the character's default movement speed*/
+const float APlayerCharacter::GetDefaultMovementSpeed()
+{
+	return defaultSpeed;
+}
+
+/* Sets defaultSpeed to parameter newSpeed and resets the walk speed of
+ * the character's movement component to the new defaultSpeed*/
+void APlayerCharacter::SetDefaultMovementSpeed(float newSpeed)
+{
+	defaultSpeed = newSpeed;
+	GetCharacterMovement()->MaxWalkSpeed = defaultSpeed;
 }
