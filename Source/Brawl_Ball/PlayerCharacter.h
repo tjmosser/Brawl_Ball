@@ -9,6 +9,9 @@
 #include "Camera/CameraComponent.h"
 #include "Classes/Components/SceneComponent.h"
 #include "Classes/Components/CapsuleComponent.h"
+#include "GameFramework/PlayerController.h"
+#include "Components/TimelineComponent.h"
+#include "Engine.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
@@ -25,6 +28,8 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	virtual void Landed(const FHitResult& Hit) override;
 
 	/* Controls forward and backward movement*/
 	UFUNCTION()
@@ -70,14 +75,35 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	UFUNCTION()
+		void WallRunTimelineCallback();
+
+	UPROPERTY()
+	UTimelineComponent* WallRunTimeline;
+
 private:
+	/* OnComponentBeginOverlap delegate for WallRunDetector*/
+	UFUNCTION()
+	void OnRunnableWallOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, 
+									class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, 
+									const FHitResult& SweepResult);
+
+	/* OnComponentEndOverlap delegate for WallRunDetector*/
+	UFUNCTION()
+	void OnRunnableWallOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, 
+								  class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	UPROPERTY(EditAnywhere)
 	UMovementAbilityComponent *ability;		// Reference to player's movement ability
 
 	UPROPERTY(EditAnywhere)
-		float sprintModifier;				// Multiplier to apply to default speed when generating sprint speed
+	UCapsuleComponent *WallRunDetector;		// Reference to the collider for detecting wall running
+
+	UPROPERTY(EditAnywhere)
+	float sprintModifier;					// Multiplier to apply to default speed when generating sprint speed
 
 	float defaultSpeed;						// Movement speed that is set at creation
+
+	bool bIsWallRunning;
 
 };

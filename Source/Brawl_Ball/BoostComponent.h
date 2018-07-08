@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "MovementAbilityComponent.h"
-#include "Engine.h"
 #include "BoostComponent.generated.h"
 
 /**
