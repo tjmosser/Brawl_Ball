@@ -117,11 +117,11 @@ private:
 	UPROPERTY(EditAnywhere)
 	UCapsuleComponent *WallRunDetector;		// Reference to the collider for detecting wall running
 	
-	UPROPERTY(EditAnywhere)
-	UBoxComponent *RightWallDetector;	// Reference for detecting wall running walls on right side
+	/*UPROPERTY(EditAnywhere)
+	UBoxComponent *RightWallDetector;	// Reference for detecting wall running walls on right side*/
 
-	UPROPERTY(EditAnywhere)
-	UBoxComponent *LeftWallDetector;	// Reference for detecting wall running walls on left side
+	/*UPROPERTY(EditAnywhere)
+	UBoxComponent *LeftWallDetector;	// Reference for detecting wall running walls on left side*/
 
 	UPROPERTY(EditAnywhere)
 	float sprintModifier;					// Multiplier to apply to default speed when generating sprint speed

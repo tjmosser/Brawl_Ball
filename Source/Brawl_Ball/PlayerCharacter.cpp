@@ -5,6 +5,7 @@
 // Sets default values
 APlayerCharacter::APlayerCharacter()
 {
+	// Get FloatCurve
 	/*static ConstructorHelpers::FObjectFinder<UCurveFloat> Curve(TEXT("/Game/Curves/C_WallRunRotation"));
 	check(Curve.Succeeded());
 
