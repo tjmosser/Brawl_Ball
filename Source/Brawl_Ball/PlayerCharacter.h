@@ -76,10 +76,19 @@ protected:
 	virtual void BeginPlay() override;
 
 	UFUNCTION()
-		void WallRunTimelineCallback();
+	void WallRunTimelineCallback();
+
+	/*UFUNCTION()
+	void WallRunRotationTimelineCallback(float val);*/
+
+	/*UPROPERTY()
+	UTimelineComponent* WallRunRotationTimeline;*/
 
 	UPROPERTY()
 	UTimelineComponent* WallRunTimeline;
+
+	/*UPROPERTY()
+	UCurveFloat* FloatCurve;*/
 
 private:
 	/* OnComponentBeginOverlap delegate for WallRunDetector*/
@@ -93,11 +102,26 @@ private:
 	void OnRunnableWallOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, 
 								  class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
+	/*UFUNCTION()
+	void OnSideDetectorOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor,
+									class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
+									const FHitResult& SweepResult);*/
+
+	/*UFUNCTION()
+	void OnSideDetectorOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor,
+								  class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);*/
+
 	UPROPERTY(EditAnywhere)
 	UMovementAbilityComponent *ability;		// Reference to player's movement ability
 
 	UPROPERTY(EditAnywhere)
 	UCapsuleComponent *WallRunDetector;		// Reference to the collider for detecting wall running
+	
+	UPROPERTY(EditAnywhere)
+	UBoxComponent *RightWallDetector;	// Reference for detecting wall running walls on right side
+
+	UPROPERTY(EditAnywhere)
+	UBoxComponent *LeftWallDetector;	// Reference for detecting wall running walls on left side
 
 	UPROPERTY(EditAnywhere)
 	float sprintModifier;					// Multiplier to apply to default speed when generating sprint speed
@@ -105,5 +129,12 @@ private:
 	float defaultSpeed;						// Movement speed that is set at creation
 
 	bool bIsWallRunning;
+
+	//bool bIsWallRunningRightSide;
+
+	//bool bIsWallRunningLeftSide;
+
+	//FRotator playerRot;
+	//FRotator newRot;
 
 };

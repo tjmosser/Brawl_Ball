@@ -5,6 +5,11 @@
 // Sets default values
 APlayerCharacter::APlayerCharacter()
 {
+	/*static ConstructorHelpers::FObjectFinder<UCurveFloat> Curve(TEXT("/Game/Curves/C_WallRunRotation"));
+	check(Curve.Succeeded());
+
+	FloatCurve = Curve.Object;*/
+
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -12,15 +17,33 @@ APlayerCharacter::APlayerCharacter()
 	FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 	FPSCameraComponent->SetupAttachment(GetCapsuleComponent());
 	FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
-	FPSCameraComponent->bUsePawnControlRotation = true;
+	FPSCameraComponent->bUsePawnControlRotation = false;
 
-	// Setup WallRunDectection capsule collider
-	WallRunDetector = CreateDefaultSubobject<UCapsuleComponent>(TEXT("WallRunDector"));
+	// Setup WallRunDetector capsule collider
+	WallRunDetector = CreateDefaultSubobject<UCapsuleComponent>(TEXT("WallRunDetector"));
 	WallRunDetector->SetupAttachment(RootComponent);
 	WallRunDetector->SetCapsuleSize(GetCapsuleComponent()->GetScaledCapsuleRadius() + 7.0f, GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 4.0f, true);
 	WallRunDetector->bGenerateOverlapEvents = true;
 	WallRunDetector->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnRunnableWallOverlapBegin);
 	WallRunDetector->OnComponentEndOverlap.AddDynamic(this, &APlayerCharacter::OnRunnableWallOverlapEnd);
+
+	// Setup RightWallDetector capsule collider
+	/*RightWallDetector = CreateDefaultSubobject<UBoxComponent>(TEXT("RightWallDetector"));
+	RightWallDetector->SetupAttachment(RootComponent);
+	RightWallDetector->SetRelativeScale3D(FVector(1.0f, 0.25f, 0.5f));
+	RightWallDetector->SetRelativeLocation(FVector(0.0f, 40.0f, 0.0f));
+	RightWallDetector->bGenerateOverlapEvents = true;
+	RightWallDetector->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnSideDetectorOverlapBegin);
+	RightWallDetector->OnComponentEndOverlap.AddDynamic(this, &APlayerCharacter::OnSideDetectorOverlapEnd);*/
+
+	// Setup LeftWallDetector capsule collider
+	/*LeftWallDetector = CreateDefaultSubobject<UBoxComponent>(TEXT("LeftWallDetector"));
+	LeftWallDetector->SetupAttachment(RootComponent);
+	LeftWallDetector->SetRelativeScale3D(FVector(1.0f, 0.25f, 0.5f));
+	LeftWallDetector->SetRelativeLocation(FVector(0.0f, -40.0f, 0.0f));
+	LeftWallDetector->bGenerateOverlapEvents = true;
+	LeftWallDetector->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnSideDetectorOverlapBegin);
+	LeftWallDetector->OnComponentEndOverlap.AddDynamic(this, &APlayerCharacter::OnSideDetectorOverlapEnd);*/
 
 	// Initialize variable(s)
 	defaultSpeed = 0.0f;
@@ -28,6 +51,8 @@ APlayerCharacter::APlayerCharacter()
 	sprintModifier = 3.0f;
 
 	bIsWallRunning = false;
+	//bIsWallRunningRightSide = false;
+	//bIsWallRunningLeftSide = false;
 
 }
 
@@ -40,7 +65,8 @@ void APlayerCharacter::BeginPlay()
 
 	GetCharacterMovement()->SetPlaneConstraintEnabled(true);
 	
-	FOnTimelineEvent onTimelineCallback;
+	FOnTimelineEvent onWallRunTimelineCallback;
+	//FOnTimelineFloat onWallRunRotationTimelineCallback;
 
 	// Setup WallRunTimeline with looping and callback
 	WallRunTimeline = NewObject<UTimelineComponent>(this, FName("WallRunTimeline"));
@@ -48,19 +74,36 @@ void APlayerCharacter::BeginPlay()
 	this->BlueprintCreatedComponents.Add(WallRunTimeline);
 	WallRunTimeline->SetPropertySetObject(this);
 	WallRunTimeline->SetLooping(true);
-	onTimelineCallback.BindUFunction(this, FName{ TEXT("WallRunTimelineCallback") });
-	WallRunTimeline->AddEvent(0.0f, onTimelineCallback);
+	onWallRunTimelineCallback.BindUFunction(this, FName{ TEXT("WallRunTimelineCallback") });
+	WallRunTimeline->AddEvent(0.0f, onWallRunTimelineCallback);
 	WallRunTimeline->RegisterComponent();
+
+	// Setup WallRunRotationTimeline with curve
+	/*WallRunRotationTimeline = NewObject<UTimelineComponent>(this, FName("WallRunRotationTimeline"));
+	WallRunRotationTimeline->CreationMethod = EComponentCreationMethod::UserConstructionScript;
+	this->BlueprintCreatedComponents.Add(WallRunRotationTimeline);
+	WallRunRotationTimeline->SetPropertySetObject(this);
+	WallRunRotationTimeline->SetLooping(false);
+	WallRunRotationTimeline->SetTimelineLengthMode(ETimelineLengthMode::TL_LastKeyFrame);
+	WallRunRotationTimeline->SetPlaybackPosition(0.0f, false);
+	onWallRunRotationTimelineCallback.BindUFunction(this, FName{ TEXT("WallRunRotationTimelineCallback") });
+	WallRunRotationTimeline->AddInterpFloat(FloatCurve, onWallRunRotationTimelineCallback);
+	WallRunRotationTimeline->RegisterComponent();*/
 
 	// Find engine default speed
 	defaultSpeed = GetCharacterMovement()->MaxWalkSpeed;
 
 }
 
+/**/
 void APlayerCharacter::WallRunTimelineCallback()
 {
-	FVector playerDir = FPSCameraComponent->GetForwardVector();
+	// TODO: Fix to where the player can freely look around without detacting themselves from the wall
 
+	//FVector playerDir = FPSCameraComponent->GetForwardVector();
+	FVector playerDir = GetActorForwardVector();
+
+	// TODO: This probably won't work in a multiplayer setting. Especially not local multiplayer
 	APlayerController* myController = GetWorld()->GetFirstPlayerController();
 
 	if (myController->GetInputKeyTimeDown(EKeys::SpaceBar) > 0.0f && bIsWallRunning)
@@ -74,23 +117,41 @@ void APlayerCharacter::WallRunTimelineCallback()
 		GetCharacterMovement()->GravityScale = 1.0f;
 		GetCharacterMovement()->SetPlaneConstraintNormal(FVector::ZeroVector);
 		bIsWallRunning = false;
+		//bIsWallRunningRightSide = false;
+		//bIsWallRunningLeftSide = false;
 	}
 }
+
+/**/
+/*void APlayerCharacter::WallRunRotationTimelineCallback(float interpolatedVal)
+{
+	if (WallRunRotationTimeline->IsReversing())
+	{
+		newRot.Roll = 0.0f;
+	}
+	else if (bIsWallRunningLeftSide)
+	{
+		newRot.Roll = 10.0f;
+	}
+	else if (bIsWallRunningRightSide)
+	{
+		newRot.Roll = -10.0f;
+	}
+
+	//GetController()->SetControlRotation(FMath::Lerp(playerRot, newRot, interpolatedVal));
+	//FPSCameraComponent->SetWorldRotation(FMath::Lerp(playerRot, newRot, interpolatedVal));
+
+}*/
 
 /**/
 void APlayerCharacter::OnRunnableWallOverlapBegin(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, 
 	int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-
 	if (OtherComp->ComponentHasTag(FName{ TEXT("RunnableWall") }) && GetCharacterMovement()->IsFalling())
 	{
 		bIsWallRunning = true;
 
 		JumpCurrentCount = 0;
-
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, FString::Printf(TEXT("%d"), bFromSweep));
-
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("%s"), *SweepResult.ImpactPoint.ToString()));
 
 		if (WallRunTimeline != nullptr)
 		{
@@ -99,9 +160,12 @@ void APlayerCharacter::OnRunnableWallOverlapBegin(UPrimitiveComponent * Overlapp
 	}
 	else
 	{
+		// TODO: Decided whether or not to remove this
 		GetCharacterMovement()->GravityScale = 1.0f;
 		GetCharacterMovement()->SetPlaneConstraintNormal(FVector::ZeroVector);
 		bIsWallRunning = false;
+		//bIsWallRunningRightSide = false;
+		//bIsWallRunningLeftSide = false;
 	}
 
 }
@@ -110,18 +174,71 @@ void APlayerCharacter::OnRunnableWallOverlapBegin(UPrimitiveComponent * Overlapp
 void APlayerCharacter::OnRunnableWallOverlapEnd(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, 
 	int32 OtherBodyIndex)
 {
-	if (WallRunTimeline != nullptr)
-	{
-		WallRunTimeline->Stop();
-	}
+	
 
 	if (OtherComp->ComponentHasTag(FName{ TEXT("RunnableWall") }))
 	{
+		if (WallRunTimeline != nullptr)
+		{
+			WallRunTimeline->Stop();
+		}
+
 		GetCharacterMovement()->GravityScale = 1.0f;
 		GetCharacterMovement()->SetPlaneConstraintNormal(FVector::ZeroVector);
 		bIsWallRunning = false;
+		//bIsWallRunningRightSide = false;
+		//bIsWallRunningLeftSide = false;
 	}
 }
+
+/*void APlayerCharacter::OnSideDetectorOverlapBegin(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, 
+	int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
+{
+
+	if (OtherComp->ComponentHasTag(FName{ TEXT("RunnableWall") }) && GetCharacterMovement()->IsFalling())
+	{
+		if (OverlappedComp->GetName().Equals(RightWallDetector->GetName()))
+		{
+			bIsWallRunningRightSide = true;
+		}
+		else if (OverlappedComp->GetName().Equals(LeftWallDetector->GetName()))
+		{
+			bIsWallRunningLeftSide = true;
+		}
+
+		playerRot = GetActorRotation();
+		newRot = playerRot;
+
+		if (WallRunRotationTimeline != nullptr)
+		{
+			WallRunRotationTimeline->PlayFromStart();
+		}
+
+	}
+
+}*/
+
+/*void APlayerCharacter::OnSideDetectorOverlapEnd(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, 
+	int32 OtherBodyIndex)
+{
+
+	if (OtherComp->ComponentHasTag(FName{ TEXT("RunnableWall") }))
+	{
+
+		playerRot = GetActorRotation();
+		newRot = playerRot;
+
+		if (WallRunRotationTimeline != nullptr)
+		{
+			WallRunRotationTimeline->ReverseFromEnd();
+		}
+
+		bIsWallRunningLeftSide = false;
+		bIsWallRunningRightSide = false;
+
+	}
+
+}*/
 
 // Called every frame
 void APlayerCharacter::Tick(float DeltaTime)
@@ -132,6 +249,11 @@ void APlayerCharacter::Tick(float DeltaTime)
 	{
 		WallRunTimeline->TickComponent(DeltaTime, ELevelTick::LEVELTICK_TimeOnly, nullptr);
 	}
+
+	/*if (WallRunRotationTimeline != nullptr)
+	{
+		WallRunRotationTimeline->TickComponent(DeltaTime, ELevelTick::LEVELTICK_TimeOnly, nullptr);
+	}*/
 
 }
 
