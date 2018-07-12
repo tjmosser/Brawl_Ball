@@ -3,8 +3,6 @@
 #include "BoostComponent.h"
 #include "PlayerCharacter.h"
 
-// TODO: Remove Debugs after testing
-
 UBoostComponent::UBoostComponent()
 {
 	// Initialize all variables

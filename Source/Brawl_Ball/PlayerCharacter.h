@@ -12,6 +12,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Components/TimelineComponent.h"
 #include "Engine.h"
+#include "FPSCameraComponent.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
@@ -20,61 +21,75 @@ class BRAWL_BALL_API APlayerCharacter : public ACharacter
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this character's properties
+	/* Sets default values for this character's properties*/
 	APlayerCharacter();
 
-	// Called every frame
+	/* Called every frame*/
 	virtual void Tick(float DeltaTime) override;
 
-	// Called to bind functionality to input
+	/* Called to bind functionality to input*/
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	/**/
 	virtual void Landed(const FHitResult& Hit) override;
 
 	/* Controls forward and backward movement*/
 	UFUNCTION()
-		void MoveForwardBackward(float value);
+	void MoveForwardBackward(float value);
 
 	/* Controls right and left movement*/
 	UFUNCTION()
-		void MoveRightLeft(float value);
+	void MoveRightLeft(float value);
+
+	/*UFUNCTION()
+	void LookUpDown(float value);*/
+
+	/*UFUNCTION()
+	void TurnRightLeft(float value);*/
 
 	/* Starts a jumping action*/
 	UFUNCTION()
-		void StartJump();
+	void StartJump();
 
 	/* Ends a jumping action*/
 	UFUNCTION()
-		void StopJump();
+	void StopJump();
 
 	/* Increases movement speed while sprint key is held*/
 	UFUNCTION()
-		void StartSprint();
+	void StartSprint();
 
 	/* Restores default movement speed when Sprint key is released*/
 	UFUNCTION()
-		void StopSprint();
+	void StopSprint();
 
 	/* Uses the attached movement ability*/
 	UFUNCTION()
-		void UseAbility();
+	void UseAbility();
 
 	/* Returns the default speed of the character*/
 	UFUNCTION()
-		const float GetDefaultMovementSpeed();
+	const float GetDefaultMovementSpeed();
 
 	/* Sets the movement speed of the character
 	 * @param newSpeed - the new movement speed for the character*/
 	UFUNCTION()
-		void SetDefaultMovementSpeed(float newSpeed);
+	void SetDefaultMovementSpeed(float newSpeed);
 
+	/**/
+	UFUNCTION()
+	void EndWallRun();
+
+	/* First person camera that the player will see through by default*/
 	UPROPERTY(VisibleAnywhere)
-		UCameraComponent* FPSCameraComponent;	// First person camera player will see through by default
+		UFPSCameraComponent* FPSCameraComponent;
+		//UCameraComponent* FPSCameraComponent;
 
 protected:
-	// Called when the game starts or when spawned
+	/* Called when the game starts or when spawned*/
 	virtual void BeginPlay() override;
 
+	/**/
 	UFUNCTION()
 	void WallRunTimelineCallback();
 
@@ -84,6 +99,7 @@ protected:
 	/*UPROPERTY()
 	UTimelineComponent* WallRunRotationTimeline;*/
 
+	/**/
 	UPROPERTY()
 	UTimelineComponent* WallRunTimeline;
 
@@ -111,11 +127,13 @@ private:
 	void OnSideDetectorOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor,
 								  class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);*/
 
+	/* Reference to player's movement ability*/
 	UPROPERTY(EditAnywhere)
-	UMovementAbilityComponent *ability;		// Reference to player's movement ability
+	UMovementAbilityComponent *ability;
 
+	/* Reference to the collider for detecting wall running*/
 	UPROPERTY(EditAnywhere)
-	UCapsuleComponent *WallRunDetector;		// Reference to the collider for detecting wall running
+	UCapsuleComponent *WallRunDetector;
 	
 	/*UPROPERTY(EditAnywhere)
 	UBoxComponent *RightWallDetector;	// Reference for detecting wall running walls on right side*/
@@ -123,12 +141,16 @@ private:
 	/*UPROPERTY(EditAnywhere)
 	UBoxComponent *LeftWallDetector;	// Reference for detecting wall running walls on left side*/
 
+	/* Multiplier to apply to default speed when generating sprint speed*/
 	UPROPERTY(EditAnywhere)
-	float sprintModifier;					// Multiplier to apply to default speed when generating sprint speed
+	float sprintModifier;
 
-	float defaultSpeed;						// Movement speed that is set at creation
+	/* Movement speed that is set at creation*/
+	float defaultSpeed;
 
 	bool bIsWallRunning;
+
+	FTimerHandle WallRunHandle;
 
 	//bool bIsWallRunningRightSide;
 

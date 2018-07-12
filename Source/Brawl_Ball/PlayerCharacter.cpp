@@ -15,10 +15,10 @@ APlayerCharacter::APlayerCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 
 	// Setup the First person camera
-	FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
-	FPSCameraComponent->SetupAttachment(GetCapsuleComponent());
+	FPSCameraComponent = CreateDefaultSubobject<UFPSCameraComponent>(TEXT("FirstPersonCamera"));
+	FPSCameraComponent->SetupAttachment(RootComponent);
 	FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
-	FPSCameraComponent->bUsePawnControlRotation = false;
+	FPSCameraComponent->bUsePawnControlRotation = true;
 
 	// Setup WallRunDetector capsule collider
 	WallRunDetector = CreateDefaultSubobject<UCapsuleComponent>(TEXT("WallRunDetector"));
@@ -52,6 +52,7 @@ APlayerCharacter::APlayerCharacter()
 	sprintModifier = 3.0f;
 
 	bIsWallRunning = false;
+	bUseControllerRotationYaw = true;
 	//bIsWallRunningRightSide = false;
 	//bIsWallRunningLeftSide = false;
 
@@ -115,9 +116,16 @@ void APlayerCharacter::WallRunTimelineCallback()
 	}
 	else
 	{
-		GetCharacterMovement()->GravityScale = 1.0f;
+		if (GetWorldTimerManager().IsTimerActive(WallRunHandle))
+		{
+			GetWorldTimerManager().ClearTimer(WallRunHandle);
+		}
+
+		EndWallRun();
+
+		/*GetCharacterMovement()->GravityScale = 1.0f;
 		GetCharacterMovement()->SetPlaneConstraintNormal(FVector::ZeroVector);
-		bIsWallRunning = false;
+		bIsWallRunning = false;*/
 		//bIsWallRunningRightSide = false;
 		//bIsWallRunningLeftSide = false;
 	}
@@ -154,19 +162,14 @@ void APlayerCharacter::OnRunnableWallOverlapBegin(UPrimitiveComponent * Overlapp
 
 		JumpCurrentCount = 0;
 
+		bUseControllerRotationYaw = false;
+
+		GetWorldTimerManager().SetTimer(WallRunHandle, this, &APlayerCharacter::EndWallRun, 5.0f, false);
+
 		if (WallRunTimeline != nullptr)
 		{
 			WallRunTimeline->PlayFromStart();
 		}
-	}
-	else
-	{
-		// TODO: Decided whether or not to remove this
-		GetCharacterMovement()->GravityScale = 1.0f;
-		GetCharacterMovement()->SetPlaneConstraintNormal(FVector::ZeroVector);
-		bIsWallRunning = false;
-		//bIsWallRunningRightSide = false;
-		//bIsWallRunningLeftSide = false;
 	}
 
 }
@@ -175,20 +178,14 @@ void APlayerCharacter::OnRunnableWallOverlapBegin(UPrimitiveComponent * Overlapp
 void APlayerCharacter::OnRunnableWallOverlapEnd(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, 
 	int32 OtherBodyIndex)
 {
-	
-
 	if (OtherComp->ComponentHasTag(FName{ TEXT("RunnableWall") }))
 	{
-		if (WallRunTimeline != nullptr)
+		if (GetWorldTimerManager().IsTimerActive(WallRunHandle))
 		{
-			WallRunTimeline->Stop();
+			GetWorldTimerManager().ClearTimer(WallRunHandle);
 		}
-
-		GetCharacterMovement()->GravityScale = 1.0f;
-		GetCharacterMovement()->SetPlaneConstraintNormal(FVector::ZeroVector);
-		bIsWallRunning = false;
-		//bIsWallRunningRightSide = false;
-		//bIsWallRunningLeftSide = false;
+		if (bIsWallRunning)
+			EndWallRun();
 	}
 }
 
@@ -256,6 +253,11 @@ void APlayerCharacter::Tick(float DeltaTime)
 		WallRunRotationTimeline->TickComponent(DeltaTime, ELevelTick::LEVELTICK_TimeOnly, nullptr);
 	}*/
 
+	if (bIsWallRunning)
+	{
+
+	}
+
 }
 
 // Called to bind functionality to input
@@ -312,6 +314,16 @@ void APlayerCharacter::MoveRightLeft(float value)
 	FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
 	AddMovementInput(Direction, value);
 }
+
+/*void APlayerCharacter::LookUpDown(float value)
+{
+
+}*/
+
+/*void APlayerCharacter::TurnRightLeft(float value)
+{
+
+}*/
 
 /* Uses the ACharacter class features to perform a jump*/
 void APlayerCharacter::StartJump()
@@ -370,4 +382,24 @@ void APlayerCharacter::SetDefaultMovementSpeed(float newSpeed)
 {
 	defaultSpeed = newSpeed;
 	GetCharacterMovement()->MaxWalkSpeed = defaultSpeed;
+}
+
+/**/
+void APlayerCharacter::EndWallRun()
+{
+	// DEBUG
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Wall Run Ended"));
+
+	if (WallRunTimeline != nullptr)
+	{
+		WallRunTimeline->Stop();
+	}
+
+	bUseControllerRotationYaw = true;
+	GetCharacterMovement()->GravityScale = 1.0f;
+	GetCharacterMovement()->SetPlaneConstraintNormal(FVector::ZeroVector);
+	bIsWallRunning = false;
+	//bIsWallRunningRightSide = false;
+	//bIsWallRunningLeftSide = false;
+
 }
