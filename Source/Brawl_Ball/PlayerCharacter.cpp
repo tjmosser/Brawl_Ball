@@ -2,7 +2,6 @@
 
 #include "PlayerCharacter.h"
 
-/* Sets default values*/
 APlayerCharacter::APlayerCharacter()
 {
 	// Get FloatCurve
@@ -13,9 +12,6 @@ APlayerCharacter::APlayerCharacter()
 
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
-	// TESTING
-	ability = CreateDefaultSubobject<ULeapComponent>(TEXT("MovementAbility"));
 
 	// Setup the First person camera
 	FPSCameraComponent = CreateDefaultSubobject<UFPSCameraComponent>(TEXT("FirstPersonCamera"));
@@ -67,13 +63,15 @@ APlayerCharacter::APlayerCharacter()
 
 }
 
-/* Called when the game starts or when spawned*/
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
 	// Intialize variables
 	JumpMaxCount = 2;
+
+	// Enable Crouching
+	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 
 	// Allow for plane constraints
 	GetCharacterMovement()->SetPlaneConstraintEnabled(true);
@@ -109,7 +107,6 @@ void APlayerCharacter::BeginPlay()
 
 }
 
-/* Called every frame*/
 void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -127,7 +124,6 @@ void APlayerCharacter::Tick(float DeltaTime)
 
 }
 
-/* Called to bind functionality to input*/
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -147,6 +143,9 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	// Bind Sprint
 	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &APlayerCharacter::StartSprint);
 	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &APlayerCharacter::StopSprint);
+
+	// Bind Crouch
+	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &APlayerCharacter::ToggleCrouch);
 
 	// Bind Movement ability
 	PlayerInputComponent->BindAction("UseMovementAbility", IE_Pressed, this, &APlayerCharacter::UseAbility);
@@ -173,8 +172,6 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 }*/
 
-/* Bound Delegate for WallRunDetector that is triggered when the player is close enough to an object that is a runnable wall and 
- * is currently in the air. Sets variables, starts wall run duration timer, and begins WallRunTimeline*/
 void APlayerCharacter::OnRunnableWallOverlapBegin(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, 
 	int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
@@ -201,7 +198,6 @@ void APlayerCharacter::OnRunnableWallOverlapBegin(UPrimitiveComponent * Overlapp
 
 }
 
-/* Bound Delegate for WallRunDetector that is triggered when the player leaves a runnable wall. Ends timelines and timers.*/
 void APlayerCharacter::OnRunnableWallOverlapEnd(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, 
 	int32 OtherBodyIndex)
 {
@@ -212,8 +208,6 @@ void APlayerCharacter::OnRunnableWallOverlapEnd(UPrimitiveComponent * Overlapped
 	}
 }
 
-/* Called every iteration of WallRunTimeline. Propels the player along the side of the wall with speed wallRunSpeed while 
- * the player is holding spacebar*/
 void APlayerCharacter::WallRunTimelineCallback()
 {
 	FVector playerDir = GetActorForwardVector();
@@ -240,7 +234,6 @@ void APlayerCharacter::WallRunTimelineCallback()
 	}
 }
 
-/* Called when a wall run is needed to end.*/
 void APlayerCharacter::EndWallRun()
 {
 	if (GetWorldTimerManager().IsTimerActive(WallRunHandle))
@@ -264,20 +257,16 @@ void APlayerCharacter::EndWallRun()
 	//bIsWallRunningLeftSide = false;
 }
 
-/* Public getter for bIsWallRunning */
 const bool APlayerCharacter::IsWallRunning()
 {
 	return bIsWallRunning;
 }
 
-/* Returns the character's default movement speed*/
 const float APlayerCharacter::GetDefaultMovementSpeed()
 {
 	return defaultSpeed;
 }
 
-/* Sets defaultSpeed to parameter newSpeed and resets the walk speed of
-* the character's movement component to the new defaultSpeed*/
 void APlayerCharacter::SetDefaultMovementSpeed(float newSpeed)
 {
 	defaultSpeed = newSpeed;
@@ -333,9 +322,6 @@ void APlayerCharacter::SetDefaultMovementSpeed(float newSpeed)
 
 }*/
 
-/* Moves player in direction of parameter value along the X axis 
- * in relation to its rotation. 1.0 moves player forward, -1.0 
- * moves player backwards*/
 void APlayerCharacter::MoveForwardBackward(float value)
 {
 	// Find and move in input direction
@@ -343,9 +329,6 @@ void APlayerCharacter::MoveForwardBackward(float value)
 	AddMovementInput(Direction, value);
 }
 
-/* Moves player in direction of parameter value along the Y axis
- * in relation to its rotation. 1.0 moves player right, -1.0 
- * moves player left*/
 void APlayerCharacter::MoveRightLeft(float value)
 {
 	// Find and move in input direction
@@ -353,13 +336,11 @@ void APlayerCharacter::MoveRightLeft(float value)
 	AddMovementInput(Direction, value);
 }
 
-/* Sets the movement speed of the character to a modified sprinting speed*/
 void APlayerCharacter::StartSprint()
 {
 	GetCharacterMovement()->MaxWalkSpeed = defaultSpeed * sprintModifier;
 }
 
-/* Sets the movement speed of the character back to its defaultSpeed after a sprint*/
 void APlayerCharacter::StopSprint()
 {
 	GetCharacterMovement()->MaxWalkSpeed = defaultSpeed;
@@ -375,7 +356,6 @@ void APlayerCharacter::StopSprint()
 
 }*/
 
-/* Uses the ACharacter class features to perform a jump*/
 void APlayerCharacter::StartJump()
 {
 	JumpCurrentCount++;
@@ -393,13 +373,26 @@ void APlayerCharacter::StartJump()
 	}
 }
 
-/* Uses the ACharacter class features to end a jump*/
 void APlayerCharacter::StopJump()
 {
 	StopJumping();
 }
 
-/* Calls the Use() method from the character's movement ability*/
+void APlayerCharacter::ToggleCrouch()
+{
+	if (!bIsWallRunning)
+	{
+		if (bIsCrouched)
+		{
+			UnCrouch();
+		}
+		else
+		{
+			Crouch();
+		}
+	}
+}
+
 void APlayerCharacter::UseAbility()
 {
 	if (ability != nullptr)

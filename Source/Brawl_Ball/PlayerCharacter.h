@@ -14,8 +14,6 @@
 // Remove after testing
 #include "Engine.h"
 #include "FPSCameraComponent.h"
-// TESTING
-#include "LeapComponent.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
@@ -24,7 +22,6 @@ class BRAWL_BALL_API APlayerCharacter : public ACharacter
 	GENERATED_BODY()
 
 public:
-	/* Sets default values for this character's properties*/
 	APlayerCharacter();
 
 	/* Called every frame*/
@@ -42,23 +39,29 @@ public:
 	const float GetDefaultMovementSpeed();
 
 	/* Sets the movement speed of the character
+	 * @param newSpeed - the new movement speed for the character
+	 * the character's movement component to the new defaultSpeed
 	 * @param newSpeed - the new movement speed for the character*/
 	UFUNCTION()
 	void SetDefaultMovementSpeed(float newSpeed);
 
-	/* Controls forward and backward movement*/
+	/* Moves player in direction of parameter value along the X axis
+	* in relation to its rotation. 1.0 moves player forward, -1.0
+	* moves player backwards*/
 	UFUNCTION()
 	void MoveForwardBackward(float value);
 
-	/* Controls right and left movement*/
+	/* Moves player in direction of parameter value along the Y axis
+	* in relation to its rotation. 1.0 moves player right, -1.0
+	* moves player left*/
 	UFUNCTION()
 	void MoveRightLeft(float value);
 
-	/* Increases movement speed while sprint key is held*/
+	/* Sets the movement speed of the character to a modified sprinting speed*/
 	UFUNCTION()
 	void StartSprint();
 
-	/* Restores default movement speed when Sprint key is released*/
+	/* Sets the movement speed of the character back to its defaultSpeed after a sprint*/
 	UFUNCTION()
 	void StopSprint();
 
@@ -68,15 +71,19 @@ public:
 	/*UFUNCTION()
 	void TurnRightLeft(float value);*/
 
-	/* Starts a jumping action*/
+	/* Uses the ACharacter class features to perform a jump*/
 	UFUNCTION()
 	void StartJump();
 
-	/* Ends a jumping action*/
+	/* Uses the ACharacter class features to end a jump*/
 	UFUNCTION()
 	void StopJump();
 
-	/* Uses the attached movement ability*/
+	/* Toggles player crouching and ends wall running*/
+	UFUNCTION()
+	void ToggleCrouch();
+
+	/* Calls the Use() method from the character's movement ability*/
 	UFUNCTION()
 	void UseAbility();
 
@@ -96,7 +103,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	/* Propels the player forward along the wall. Constrains the player's movement 
-	 * and rotation while spacebar is held.*/
+	 * and rotation while spacebar is held. Called every iteration of WallRunTimeline*/
 	UFUNCTION()
 	void WallRunTimelineCallback();
 
@@ -116,12 +123,15 @@ protected:
 	UCurveFloat* FloatCurve;*/
 
 private:
-	/* OnComponentBeginOverlap delegate for WallRunDetector*/
+	/* Bound Delegate for WallRunDetector that is triggered when the player is close 
+	 * enough to an object that is a runnable wall and is currently in the air. Sets
+	 * variables, starts wall run duration timer, and begins WallRunTimeline*/
 	UFUNCTION()
 	void OnRunnableWallOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, 
 		class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
-	/* OnComponentEndOverlap delegate for WallRunDetector*/
+	/* Bound Delegate for WallRunDetector that is triggered when the player leaves 
+	 * a runnable wall. Ends timelines and timers.*/
 	UFUNCTION()
 	void OnRunnableWallOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, 
 		class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
