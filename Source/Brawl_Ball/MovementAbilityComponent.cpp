@@ -1,7 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MovementAbilityComponent.h"
-#include "PlayerCharacter.h"
 
 
 // Sets default values for this component's properties
@@ -27,9 +26,7 @@ void UMovementAbilityComponent::BeginPlay()
 
 	// Reference to the player's movement component
 	playerMovement = Cast<UCharacterMovementComponent>(GetOwner()->GetComponentByClass(UCharacterMovementComponent::StaticClass()));
-
-	// Reference to the player that owns this movement ability
-	player = Cast<APlayerCharacter>(GetOwner());
+	
 }
 
 

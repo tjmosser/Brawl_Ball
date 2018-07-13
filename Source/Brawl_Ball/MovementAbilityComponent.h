@@ -7,8 +7,6 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "MovementAbilityComponent.generated.h"
 
-// Forward Declarations
-class APlayerCharacter;
 
 UCLASS( Blueprintable, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class BRAWL_BALL_API UMovementAbilityComponent : public UActorComponent
@@ -27,8 +25,6 @@ protected:
 	virtual void BeginPlay() override;
 
 	UCharacterMovementComponent *playerMovement;	// reference to player's movement component
-
-	APlayerCharacter *player;
 
 public:	
 	// Called every frame

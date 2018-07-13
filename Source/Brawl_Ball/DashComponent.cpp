@@ -10,7 +10,7 @@ UDashComponent::UDashComponent()
 	dashMod = 5000.0f;
 	delay = 0.3f;
 	rechargeTime = 2.0f;
-	bcanDash = true;
+	canDash = true;
 }
 
 // Called when the game starts
@@ -44,15 +44,15 @@ void UDashComponent::RegenCharges()
 void UDashComponent::DashDelay()
 {
 	playerMovement->StopMovementImmediately();		// Stops player so that the movement is in a straight line instead of an arch
-	bcanDash = true;
+	canDash = true;
 }
 
 // Move player and set associated timers
 void UDashComponent::Use()
 {
-	if (charges > 0 && bcanDash)
+	if (charges > 0 && canDash)
 	{
-			bcanDash = false;
+			canDash = false;
 			
 			// Move player in direction camera is facing by a distance modifier
 			playerMovement->GetCharacterOwner()->LaunchCharacter(playerCamera->GetForwardVector() * dashMod, false, false);
