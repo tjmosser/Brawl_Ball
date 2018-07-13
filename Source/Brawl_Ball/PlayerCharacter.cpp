@@ -264,6 +264,12 @@ void APlayerCharacter::EndWallRun()
 	//bIsWallRunningLeftSide = false;
 }
 
+/* Public getter for bIsWallRunning */
+const bool APlayerCharacter::IsWallRunning()
+{
+	return bIsWallRunning;
+}
+
 /* Returns the character's default movement speed*/
 const float APlayerCharacter::GetDefaultMovementSpeed()
 {

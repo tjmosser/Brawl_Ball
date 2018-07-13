@@ -67,7 +67,7 @@ private:
 	/* Handle for timer that regenerates charges*/
 	FTimerHandle MovementRegenHandle;
 
-	/* Timer handle for calling HighJump after holding action key for duratoin of buttonHoldTime*/
+	/* Timer handle for calling HighJump after holding action key for duration of buttonHoldTime*/
 	FTimerHandle HoldHandle;
 
 protected:

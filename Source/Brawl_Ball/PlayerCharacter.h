@@ -11,6 +11,7 @@
 #include "Classes/Components/CapsuleComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "Components/TimelineComponent.h"
+// Remove after testing
 #include "Engine.h"
 #include "FPSCameraComponent.h"
 // TESTING
@@ -32,14 +33,18 @@ public:
 	/* Called to bind functionality to input*/
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	/* Getter for bIsWallRunning*/
+	UFUNCTION()
+	const bool IsWallRunning();
+
 	/* Returns the default speed of the character*/
 	UFUNCTION()
-		const float GetDefaultMovementSpeed();
+	const float GetDefaultMovementSpeed();
 
 	/* Sets the movement speed of the character
 	 * @param newSpeed - the new movement speed for the character*/
 	UFUNCTION()
-		void SetDefaultMovementSpeed(float newSpeed);
+	void SetDefaultMovementSpeed(float newSpeed);
 
 	/* Controls forward and backward movement*/
 	UFUNCTION()
@@ -51,11 +56,11 @@ public:
 
 	/* Increases movement speed while sprint key is held*/
 	UFUNCTION()
-		void StartSprint();
+	void StartSprint();
 
 	/* Restores default movement speed when Sprint key is released*/
 	UFUNCTION()
-		void StopSprint();
+	void StopSprint();
 
 	/*UFUNCTION()
 	void LookUpDown(float value);*/
@@ -82,8 +87,9 @@ public:
 
 	/* First person camera that the player will see through by default*/
 	UPROPERTY(VisibleAnywhere)
-		UFPSCameraComponent* FPSCameraComponent;
-		//UCameraComponent* FPSCameraComponent;
+	UFPSCameraComponent* FPSCameraComponent;
+	//UCameraComponent* FPSCameraComponent;
+
 
 protected:
 	/* Called when the game starts or when spawned*/

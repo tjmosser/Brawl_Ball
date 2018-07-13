@@ -36,6 +36,7 @@ void ULeapComponent::Use()
 	{
 		// TODO: Stop the player from being able to jump normally
 
+
 		// When the player presses and holds the action key for a specified duration, preform a HighJump
 		GetOwner()->GetWorldTimerManager().SetTimer(HoldHandle, this, &ULeapComponent::HighJump, buttonHoldTime, false);
 	}	
@@ -46,6 +47,11 @@ after the player holds down the action key for buttonHoldTime seconds.*/
 void ULeapComponent::HighJump()
 {
 	charges--;
+
+	if (player->IsWallRunning())
+	{
+		player->EndWallRun();
+	}
 
 	// Launch character upwards at highJumpHeight height
 	player->LaunchCharacter(FVector::FVector(0.0f, 0.0f, highJumpHeight), false, false);
@@ -66,7 +72,12 @@ void ULeapComponent::LongJump()
 		// Clear the timer so HighJump will not be called
 		GetWorld()->GetTimerManager().ClearTimer(HoldHandle);
 
-		// Get which movement buttons are being placed
+		if (player->IsWallRunning())
+		{
+			player->EndWallRun();
+		}
+
+		// Get which movement buttons are being pressed
 		float axisValueX = GetOwner()->InputComponent->GetAxisValue("MoveForward/Backward");
 		float axisValueY = GetOwner()->InputComponent->GetAxisValue("MoveRight/Left");
 
