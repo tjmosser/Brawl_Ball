@@ -2,7 +2,7 @@
 
 #include "PlayerCharacter.h"
 
-// Sets default values
+/* Sets default values*/
 APlayerCharacter::APlayerCharacter()
 {
 	// Get FloatCurve
@@ -13,6 +13,9 @@ APlayerCharacter::APlayerCharacter()
 
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+
+	// TESTING
+	ability = CreateDefaultSubobject<ULeapComponent>(TEXT("MovementAbility"));
 
 	// Setup the First person camera
 	FPSCameraComponent = CreateDefaultSubobject<UFPSCameraComponent>(TEXT("FirstPersonCamera"));
@@ -49,7 +52,13 @@ APlayerCharacter::APlayerCharacter()
 	// Initialize variable(s)
 	defaultSpeed = 0.0f;
 
-	sprintModifier = 3.0f;
+	sprintModifier = 2.0f;
+
+	wallRunDuration = 5.0f;
+
+	wallRunSpeed = 15000.0f;
+
+	jumpForce = 420.0f;
 
 	bIsWallRunning = false;
 	bUseControllerRotationYaw = true;
@@ -58,19 +67,20 @@ APlayerCharacter::APlayerCharacter()
 
 }
 
-// Called when the game starts or when spawned
+/* Called when the game starts or when spawned*/
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// Intialize variables
 	JumpMaxCount = 2;
 
+	// Allow for plane constraints
 	GetCharacterMovement()->SetPlaneConstraintEnabled(true);
 	
-	FOnTimelineEvent onWallRunTimelineCallback;
-	//FOnTimelineFloat onWallRunRotationTimelineCallback;
-
 	// Setup WallRunTimeline with looping and callback
+	FOnTimelineEvent onWallRunTimelineCallback;
+
 	WallRunTimeline = NewObject<UTimelineComponent>(this, FName("WallRunTimeline"));
 	WallRunTimeline->CreationMethod = EComponentCreationMethod::UserConstructionScript;
 	this->BlueprintCreatedComponents.Add(WallRunTimeline);
@@ -81,7 +91,9 @@ void APlayerCharacter::BeginPlay()
 	WallRunTimeline->RegisterComponent();
 
 	// Setup WallRunRotationTimeline with curve
-	/*WallRunRotationTimeline = NewObject<UTimelineComponent>(this, FName("WallRunRotationTimeline"));
+	/*FOnTimelineFloat onWallRunRotationTimelineCallback;
+
+	WallRunRotationTimeline = NewObject<UTimelineComponent>(this, FName("WallRunRotationTimeline"));
 	WallRunRotationTimeline->CreationMethod = EComponentCreationMethod::UserConstructionScript;
 	this->BlueprintCreatedComponents.Add(WallRunRotationTimeline);
 	WallRunRotationTimeline->SetPropertySetObject(this);
@@ -97,41 +109,50 @@ void APlayerCharacter::BeginPlay()
 
 }
 
-/**/
-void APlayerCharacter::WallRunTimelineCallback()
+/* Called every frame*/
+void APlayerCharacter::Tick(float DeltaTime)
 {
-	// TODO: Fix to where the player can freely look around without detacting themselves from the wall
+	Super::Tick(DeltaTime);
 
-	//FVector playerDir = FPSCameraComponent->GetForwardVector();
-	FVector playerDir = GetActorForwardVector();
-
-	// TODO: This probably won't work in a multiplayer setting. Especially not local multiplayer
-	APlayerController* myController = GetWorld()->GetFirstPlayerController();
-
-	if (myController->GetInputKeyTimeDown(EKeys::SpaceBar) > 0.0f && bIsWallRunning)
+	// Setup Timeline tick
+	if (WallRunTimeline != nullptr)
 	{
-		GetCharacterMovement()->GravityScale = 0.0f;
-		GetCharacterMovement()->SetPlaneConstraintNormal(FVector(0.0f, 0.0f, 1.0f));
-		GetCharacterMovement()->AddForce(playerDir * 20000.0f);
+		WallRunTimeline->TickComponent(DeltaTime, ELevelTick::LEVELTICK_TimeOnly, nullptr);
 	}
-	else
+
+	/*if (WallRunRotationTimeline != nullptr)
 	{
-		if (GetWorldTimerManager().IsTimerActive(WallRunHandle))
-		{
-			GetWorldTimerManager().ClearTimer(WallRunHandle);
-		}
+	WallRunRotationTimeline->TickComponent(DeltaTime, ELevelTick::LEVELTICK_TimeOnly, nullptr);
+	}*/
 
-		EndWallRun();
-
-		/*GetCharacterMovement()->GravityScale = 1.0f;
-		GetCharacterMovement()->SetPlaneConstraintNormal(FVector::ZeroVector);
-		bIsWallRunning = false;*/
-		//bIsWallRunningRightSide = false;
-		//bIsWallRunningLeftSide = false;
-	}
 }
 
-/**/
+/* Called to bind functionality to input*/
+void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	// Bind Movement Axes
+	PlayerInputComponent->BindAxis("MoveForward/Backward", this, &APlayerCharacter::MoveForwardBackward);
+	PlayerInputComponent->BindAxis("MoveRight/Left", this, &APlayerCharacter::MoveRightLeft);
+
+	// Bind Mouse Movement
+	PlayerInputComponent->BindAxis("LookUp/Down", this, &APlayerCharacter::AddControllerPitchInput);
+	PlayerInputComponent->BindAxis("TurnRight/Left", this, &APlayerCharacter::AddControllerYawInput);
+
+	// Bind Jump Action
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &APlayerCharacter::StartJump);
+	PlayerInputComponent->BindAction("Jump", IE_Released, this, &APlayerCharacter::StopJump);
+
+	// Bind Sprint
+	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &APlayerCharacter::StartSprint);
+	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &APlayerCharacter::StopSprint);
+
+	// Bind Movement ability
+	PlayerInputComponent->BindAction("UseMovementAbility", IE_Pressed, this, &APlayerCharacter::UseAbility);
+
+}
+
 /*void APlayerCharacter::WallRunRotationTimelineCallback(float interpolatedVal)
 {
 	if (WallRunRotationTimeline->IsReversing())
@@ -152,7 +173,8 @@ void APlayerCharacter::WallRunTimelineCallback()
 
 }*/
 
-/**/
+/* Bound Delegate for WallRunDetector that is triggered when the player is close enough to an object that is a runnable wall and 
+ * is currently in the air. Sets variables, starts wall run duration timer, and begins WallRunTimeline*/
 void APlayerCharacter::OnRunnableWallOverlapBegin(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, 
 	int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
@@ -160,11 +182,16 @@ void APlayerCharacter::OnRunnableWallOverlapBegin(UPrimitiveComponent * Overlapp
 	{
 		bIsWallRunning = true;
 
+		// This will work when side detection is active.
+		//SetActorRotation(FRotationMatrix::MakeFromZY(SweepResult.Normal, GetActorRightVector()).Rotator());
+
 		JumpCurrentCount = 0;
 
+		// Lock actor's rotation while and allow player to look around while wall running
 		bUseControllerRotationYaw = false;
 
-		GetWorldTimerManager().SetTimer(WallRunHandle, this, &APlayerCharacter::EndWallRun, 5.0f, false);
+		// Start duration timer
+		GetWorldTimerManager().SetTimer(WallRunHandle, this, &APlayerCharacter::EndWallRun, wallRunDuration, false);
 
 		if (WallRunTimeline != nullptr)
 		{
@@ -174,19 +201,81 @@ void APlayerCharacter::OnRunnableWallOverlapBegin(UPrimitiveComponent * Overlapp
 
 }
 
-/**/
+/* Bound Delegate for WallRunDetector that is triggered when the player leaves a runnable wall. Ends timelines and timers.*/
 void APlayerCharacter::OnRunnableWallOverlapEnd(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, 
 	int32 OtherBodyIndex)
 {
 	if (OtherComp->ComponentHasTag(FName{ TEXT("RunnableWall") }))
 	{
-		if (GetWorldTimerManager().IsTimerActive(WallRunHandle))
-		{
-			GetWorldTimerManager().ClearTimer(WallRunHandle);
-		}
 		if (bIsWallRunning)
 			EndWallRun();
 	}
+}
+
+/* Called every iteration of WallRunTimeline. Propels the player along the side of the wall with speed wallRunSpeed while 
+ * the player is holding spacebar*/
+void APlayerCharacter::WallRunTimelineCallback()
+{
+	FVector playerDir = GetActorForwardVector();
+
+	// TODO: This needs to be tested in a multiplayer setting
+	if (Controller != nullptr)
+	{
+
+		APlayerController* myController = CastChecked<APlayerController>(Controller);
+
+		if (myController->GetInputKeyTimeDown(EKeys::SpaceBar) > 0.0f && bIsWallRunning)
+		{
+			// Removed gravity and remove abiltiy to move on Z axis
+			GetCharacterMovement()->GravityScale = 0.0f;
+			GetCharacterMovement()->SetPlaneConstraintNormal(FVector(0.0f, 0.0f, 1.0f));
+			
+			// propel the player forward
+			GetCharacterMovement()->AddForce(playerDir * wallRunSpeed);
+		}
+		else
+		{
+			EndWallRun();
+		}
+	}
+}
+
+/* Called when a wall run is needed to end.*/
+void APlayerCharacter::EndWallRun()
+{
+	if (GetWorldTimerManager().IsTimerActive(WallRunHandle))
+	{
+		GetWorldTimerManager().ClearTimer(WallRunHandle);
+	}
+
+	if (WallRunTimeline != nullptr)
+	{
+		WallRunTimeline->Stop();
+	}
+
+	// Reset the player's rotation to where they are looking
+	bUseControllerRotationYaw = true;
+	
+	// Reset gravity and remove constraints
+	GetCharacterMovement()->GravityScale = 1.0f;
+	GetCharacterMovement()->SetPlaneConstraintNormal(FVector::ZeroVector);
+	bIsWallRunning = false;
+	//bIsWallRunningRightSide = false;
+	//bIsWallRunningLeftSide = false;
+}
+
+/* Returns the character's default movement speed*/
+const float APlayerCharacter::GetDefaultMovementSpeed()
+{
+	return defaultSpeed;
+}
+
+/* Sets defaultSpeed to parameter newSpeed and resets the walk speed of
+* the character's movement component to the new defaultSpeed*/
+void APlayerCharacter::SetDefaultMovementSpeed(float newSpeed)
+{
+	defaultSpeed = newSpeed;
+	GetCharacterMovement()->MaxWalkSpeed = defaultSpeed;
 }
 
 /*void APlayerCharacter::OnSideDetectorOverlapBegin(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, 
@@ -238,63 +327,6 @@ void APlayerCharacter::OnRunnableWallOverlapEnd(UPrimitiveComponent * Overlapped
 
 }*/
 
-// Called every frame
-void APlayerCharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-	if (WallRunTimeline != nullptr)
-	{
-		WallRunTimeline->TickComponent(DeltaTime, ELevelTick::LEVELTICK_TimeOnly, nullptr);
-	}
-
-	/*if (WallRunRotationTimeline != nullptr)
-	{
-		WallRunRotationTimeline->TickComponent(DeltaTime, ELevelTick::LEVELTICK_TimeOnly, nullptr);
-	}*/
-
-	if (bIsWallRunning)
-	{
-
-	}
-
-}
-
-// Called to bind functionality to input
-void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-	// Bind Movement Axes
-	PlayerInputComponent->BindAxis("MoveForward/Backward", this, &APlayerCharacter::MoveForwardBackward);
-	PlayerInputComponent->BindAxis("MoveRight/Left", this, &APlayerCharacter::MoveRightLeft);
-
-	// Bind Mouse Movement
-	PlayerInputComponent->BindAxis("LookUp/Down", this, &APlayerCharacter::AddControllerPitchInput);
-	PlayerInputComponent->BindAxis("TurnRight/Left", this, &APlayerCharacter::AddControllerYawInput);
-
-	// Bind Jump Action
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &APlayerCharacter::StartJump);
-	PlayerInputComponent->BindAction("Jump", IE_Released, this, &APlayerCharacter::StopJump);
-
-	// Bind Sprint
-	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &APlayerCharacter::StartSprint);
-	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &APlayerCharacter::StopSprint);
-
-	// Bind Movement ability
-	PlayerInputComponent->BindAction("UseMovementAbility", IE_Pressed, this, &APlayerCharacter::UseAbility);
-
-}
-
-/* Called upon landing when falling, to perform actions based on the Hit result
- * and reset number of jumps able to be performed. Calls ACharacter::Landed(Hit)*/
-void APlayerCharacter::Landed(const FHitResult & Hit)
-{
-	Super::Landed(Hit);
-
-	JumpCurrentCount = 0;
-}
-
 /* Moves player in direction of parameter value along the X axis 
  * in relation to its rotation. 1.0 moves player forward, -1.0 
  * moves player backwards*/
@@ -315,6 +347,18 @@ void APlayerCharacter::MoveRightLeft(float value)
 	AddMovementInput(Direction, value);
 }
 
+/* Sets the movement speed of the character to a modified sprinting speed*/
+void APlayerCharacter::StartSprint()
+{
+	GetCharacterMovement()->MaxWalkSpeed = defaultSpeed * sprintModifier;
+}
+
+/* Sets the movement speed of the character back to its defaultSpeed after a sprint*/
+void APlayerCharacter::StopSprint()
+{
+	GetCharacterMovement()->MaxWalkSpeed = defaultSpeed;
+}
+
 /*void APlayerCharacter::LookUpDown(float value)
 {
 
@@ -333,10 +377,10 @@ void APlayerCharacter::StartJump()
 	switch (JumpCurrentCount)
 	{
 		case 1:
-			LaunchCharacter(FVector(0.0f, 0.0f, 420.0f), false, true);
+			LaunchCharacter(FVector(0.0f, 0.0f, jumpForce), false, true);
 			break;
 		case 2:
-			LaunchCharacter(FVector(0.0f, 0.0f, 420.0f), false, true);
+			LaunchCharacter(FVector(0.0f, 0.0f, jumpForce), false, true);
 			break;
 		default:
 			break;
@@ -349,18 +393,6 @@ void APlayerCharacter::StopJump()
 	StopJumping();
 }
 
-/* Sets the movement speed of the character to a modified sprinting speed*/
-void APlayerCharacter::StartSprint()
-{
-	GetCharacterMovement()->MaxWalkSpeed = defaultSpeed * sprintModifier;
-}
-
-/* Sets the movement speed of the character back to its defaultSpeed after a sprint*/
-void APlayerCharacter::StopSprint()
-{
-	GetCharacterMovement()->MaxWalkSpeed = defaultSpeed;
-}
-
 /* Calls the Use() method from the character's movement ability*/
 void APlayerCharacter::UseAbility()
 {
@@ -370,36 +402,3 @@ void APlayerCharacter::UseAbility()
 	}
 }
 
-/* Returns the character's default movement speed*/
-const float APlayerCharacter::GetDefaultMovementSpeed()
-{
-	return defaultSpeed;
-}
-
-/* Sets defaultSpeed to parameter newSpeed and resets the walk speed of
- * the character's movement component to the new defaultSpeed*/
-void APlayerCharacter::SetDefaultMovementSpeed(float newSpeed)
-{
-	defaultSpeed = newSpeed;
-	GetCharacterMovement()->MaxWalkSpeed = defaultSpeed;
-}
-
-/**/
-void APlayerCharacter::EndWallRun()
-{
-	// DEBUG
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Wall Run Ended"));
-
-	if (WallRunTimeline != nullptr)
-	{
-		WallRunTimeline->Stop();
-	}
-
-	bUseControllerRotationYaw = true;
-	GetCharacterMovement()->GravityScale = 1.0f;
-	GetCharacterMovement()->SetPlaneConstraintNormal(FVector::ZeroVector);
-	bIsWallRunning = false;
-	//bIsWallRunningRightSide = false;
-	//bIsWallRunningLeftSide = false;
-
-}

@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "LeapComponent.h"
+#include "PlayerCharacter.h"
 
 ULeapComponent::ULeapComponent()
 {
@@ -18,48 +19,44 @@ ULeapComponent::ULeapComponent()
 	buttonHoldTime = 3.0f;
 }
 
+/* Initialize starting values for references */
+void ULeapComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// Setup new action for LongJump call
+	GetOwner()->InputComponent->BindAction("UseMovementAbility", IE_Released, this, &ULeapComponent::LongJump);
+
+}
+
 /* Starts timer for HighJump. Called when the player presses the action key. */
 void ULeapComponent::Use()
 {
 	if (charges > 0)
 	{
+		// TODO: Stop the player from being able to jump normally
+
 		// When the player presses and holds the action key for a specified duration, preform a HighJump
 		GetOwner()->GetWorldTimerManager().SetTimer(HoldHandle, this, &ULeapComponent::HighJump, buttonHoldTime, false);
 	}	
 }
 
-/* Regains expended charges until maximum is reached. Called by MovementRegenHandle timer after
-   rechargeTime seconds have passed */
-void ULeapComponent::RegenCharges()
-{
-	// Regain expended charges until maximum is reached
-	if (charges < maxCharges)
-	{
-		charges++;
-	}
-
-	if (charges == maxCharges)
-	{
-		GetWorld()->GetTimerManager().ClearTimer(MovementRegenHandle);
-	}
-}
-
 /* Preforms a jump that launches the character upward at a large height. Only is called
-   after the player holds down the action key for buttonHoldTime seconds.*/
+after the player holds down the action key for buttonHoldTime seconds.*/
 void ULeapComponent::HighJump()
 {
 	charges--;
 
 	// Launch character upwards at highJumpHeight height
-	myCharacter->LaunchCharacter(FVector::FVector(0.0f, 0.0f, highJumpHeight), false, false);
+	player->LaunchCharacter(FVector::FVector(0.0f, 0.0f, highJumpHeight), false, false);
 
 	// Regen expended charge
 	GetOwner()->GetWorldTimerManager().SetTimer(MovementRegenHandle, this, &ULeapComponent::RegenCharges, rechargeTime, true);
 }
 
 /* Launches the character in the direction they're moving with a small height. Called when the
-   player releases the action key. This will only preform the jump when the player releases the
-   action key *before* buttonHoldTime seconds have passed */
+player releases the action key. This will only preform the jump when the player releases the
+action key *before* buttonHoldTime seconds have passed */
 void ULeapComponent::LongJump()
 {
 	// HoldHandle is the timer that starts calls HighJump after the action
@@ -89,8 +86,8 @@ void ULeapComponent::LongJump()
 			charges--;
 
 			// Preform Leap
-			myCharacter->LaunchCharacter(leapDir, false, false);
-			
+			player->LaunchCharacter(leapDir, false, false);
+
 			// Regen expended charge
 			GetOwner()->GetWorldTimerManager().SetTimer(MovementRegenHandle, this, &ULeapComponent::RegenCharges, rechargeTime, true);
 
@@ -99,16 +96,19 @@ void ULeapComponent::LongJump()
 	}
 }
 
-/* Initialize starting values for references */
-void ULeapComponent::BeginPlay()
+/* Regains expended charges until maximum is reached. Called by MovementRegenHandle timer after
+   rechargeTime seconds have passed */
+void ULeapComponent::RegenCharges()
 {
-	Super::BeginPlay();
+	// Regain expended charges until maximum is reached
+	if (charges < maxCharges)
+	{
+		charges++;
+	}
 
-	playerCamera = Cast<UCameraComponent>(GetOwner()->GetComponentByClass(UCameraComponent::StaticClass()));
-
-	myCharacter = playerMovement->GetCharacterOwner();
-	
-	// Setup new action for LongJump call
-	GetOwner()->InputComponent->BindAction("UseMovementAbility", IE_Released, this, &ULeapComponent::LongJump);
-
+	if (charges == maxCharges)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(MovementRegenHandle);
+	}
 }
+

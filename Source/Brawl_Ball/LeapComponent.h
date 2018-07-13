@@ -24,35 +24,39 @@ public:
 
 private:
 
-	/* Restores any lost charges until maximum allowed amount is reached */
-	UFUNCTION()
-		void RegenCharges();
-
 	/* Launches the character upwards into the air only after the associated
-	   timer is finished */
+	timer is finished */
 	UFUNCTION()
 		void HighJump();
 
 	/* Launches the character upwards and forwards in the direction that they
-	   are moving in */
+	are moving in */
 	UFUNCTION()
 		void LongJump();
 
-	UPROPERTY(EditAnywhere)
-		int charges;					// Current number of charges
+	/* Restores any lost charges until maximum allowed amount is reached */
+	UFUNCTION()
+		void RegenCharges();
 
+	/* Current number of charges*/
 	UPROPERTY(EditAnywhere)
-		int maxCharges;					// Number of maximum charges allowed at one time
+		int charges;
 
+	/* Number of maximum charges allowed at one time*/
 	UPROPERTY(EditAnywhere)
-		float rechargeTime;				// Time required to regain a expended charge
+		int maxCharges;
+
+	/* Time required to regain an expended charge*/
+	UPROPERTY(EditAnywhere)
+		float rechargeTime;
 	
+	/* Length of time required for actionkey to be held down to preform HighJump*/
 	UPROPERTY(EditAnywhere)
-		float buttonHoldTime;			// Length of time required for action key to be 
-										// held down to preform HighJump
+		float buttonHoldTime;
 
+	/* Movement distance values*/
 	UPROPERTY(EditAnywhere)
-		float highJumpHeight;			// Movement distance values
+		float highJumpHeight;
 	
 	UPROPERTY(EditAnywhere)
 		float longJumpHeight;
@@ -60,14 +64,11 @@ private:
 	UPROPERTY(EditAnywhere)
 		float longJumpMaxDistance;
 
-	UCameraComponent *playerCamera;		// Reference to the currently being used camera
-	ACharacter *myCharacter;			// Reference to the ACharacter this is attached to
+	/* Handle for timer that regenerates charges*/
+	FTimerHandle MovementRegenHandle;
 
-	FTimerHandle MovementRegenHandle;	// Handle for timer that regenerates charges
-	FTimerHandle HoldHandle;			// Timer handle for calling HighJump after holding
-										// action key for duration of buttonHoldTime
-
-	
+	/* Timer handle for calling HighJump after holding action key for duratoin of buttonHoldTime*/
+	FTimerHandle HoldHandle;
 
 protected:
 	/* Called when the game starts or when spawned */

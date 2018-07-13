@@ -13,6 +13,8 @@
 #include "Components/TimelineComponent.h"
 #include "Engine.h"
 #include "FPSCameraComponent.h"
+// TESTING
+#include "LeapComponent.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
@@ -30,8 +32,14 @@ public:
 	/* Called to bind functionality to input*/
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	/**/
-	virtual void Landed(const FHitResult& Hit) override;
+	/* Returns the default speed of the character*/
+	UFUNCTION()
+		const float GetDefaultMovementSpeed();
+
+	/* Sets the movement speed of the character
+	 * @param newSpeed - the new movement speed for the character*/
+	UFUNCTION()
+		void SetDefaultMovementSpeed(float newSpeed);
 
 	/* Controls forward and backward movement*/
 	UFUNCTION()
@@ -40,6 +48,14 @@ public:
 	/* Controls right and left movement*/
 	UFUNCTION()
 	void MoveRightLeft(float value);
+
+	/* Increases movement speed while sprint key is held*/
+	UFUNCTION()
+		void StartSprint();
+
+	/* Restores default movement speed when Sprint key is released*/
+	UFUNCTION()
+		void StopSprint();
 
 	/*UFUNCTION()
 	void LookUpDown(float value);*/
@@ -55,28 +71,12 @@ public:
 	UFUNCTION()
 	void StopJump();
 
-	/* Increases movement speed while sprint key is held*/
-	UFUNCTION()
-	void StartSprint();
-
-	/* Restores default movement speed when Sprint key is released*/
-	UFUNCTION()
-	void StopSprint();
-
 	/* Uses the attached movement ability*/
 	UFUNCTION()
 	void UseAbility();
 
-	/* Returns the default speed of the character*/
-	UFUNCTION()
-	const float GetDefaultMovementSpeed();
-
-	/* Sets the movement speed of the character
-	 * @param newSpeed - the new movement speed for the character*/
-	UFUNCTION()
-	void SetDefaultMovementSpeed(float newSpeed);
-
-	/**/
+	/* Ends a wall run by stopping the WallRunTimeline and removing all movement 
+	 * constraints set on the player.*/
 	UFUNCTION()
 	void EndWallRun();
 
@@ -89,7 +89,8 @@ protected:
 	/* Called when the game starts or when spawned*/
 	virtual void BeginPlay() override;
 
-	/**/
+	/* Propels the player forward along the wall. Constrains the player's movement 
+	 * and rotation while spacebar is held.*/
 	UFUNCTION()
 	void WallRunTimelineCallback();
 
@@ -99,7 +100,9 @@ protected:
 	/*UPROPERTY()
 	UTimelineComponent* WallRunRotationTimeline;*/
 
-	/**/
+	/* Timeline started when WallRunDetector detects a runnable wall and the player is 
+	 * falling. Loops until stopped and has callback WallRunTimelineCallback(). Ends 
+	 * when WallRunDetector is no longer colliding with a wall.*/
 	UPROPERTY()
 	UTimelineComponent* WallRunTimeline;
 
@@ -110,13 +113,12 @@ private:
 	/* OnComponentBeginOverlap delegate for WallRunDetector*/
 	UFUNCTION()
 	void OnRunnableWallOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, 
-									class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, 
-									const FHitResult& SweepResult);
+		class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	/* OnComponentEndOverlap delegate for WallRunDetector*/
 	UFUNCTION()
 	void OnRunnableWallOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, 
-								  class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+		class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	/*UFUNCTION()
 	void OnSideDetectorOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor,
@@ -145,18 +147,30 @@ private:
 	UPROPERTY(EditAnywhere)
 	float sprintModifier;
 
+	/* Speed that the player will be propelled by while wall running.*/
+	UPROPERTY(EditAnywhere)
+	float wallRunSpeed;
+
+	/* Strength of force that will launch the player along the Z axis when jumping*/
+	UPROPERTY(EditAnywhere)
+	float jumpForce;
+
 	/* Movement speed that is set at creation*/
 	float defaultSpeed;
 
+	/* Time a wall run lasts in seconds*/
+	float wallRunDuration;
+
 	bool bIsWallRunning;
 
+	/* Handle for timer that ends the wall run after wallRunDuration seconds*/
 	FTimerHandle WallRunHandle;
 
-	//bool bIsWallRunningRightSide;
+	/*bool bIsWallRunningRightSide;
 
-	//bool bIsWallRunningLeftSide;
+	bool bIsWallRunningLeftSide;
 
-	//FRotator playerRot;
-	//FRotator newRot;
+	FRotator playerRot;
+	FRotator newRot;*/
 
 };
